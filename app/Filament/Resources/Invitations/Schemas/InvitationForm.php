@@ -8,6 +8,7 @@ use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Schema;
+use App\Models\Border;
 
 class InvitationForm
 {
@@ -54,6 +55,36 @@ class InvitationForm
                     ->disk('public')
                     ->directory('invitations')
                     ->visibility('public'),
+                    Select::make('border_id')
+                    ->label('Kenarlık Seçimi')
+                    ->relationship('border', 'name')
+                    ->searchable()
+                    ->preload()
+                    // HTML izni veriyoruz ki <img> etiketi çalışsın
+                    ->allowHtml() 
+                    // Listede nasıl görüneceğini ayarlıyoruz (Resim + İsim)
+                    ->getOptionLabelFromRecordUsing(fn (Border $record) => 
+                        '<div style="display:flex; align-items:center; gap:10px;">
+                            <img src="' . asset('storage/' . $record->image_path) . '" style="height: 40px; width: 40px; object-fit: contain; border-radius: 4px; border:1px solid #ddd;" />
+                            <span>' . $record->name . '</span>
+                        </div>'
+                    )
+                    // Dropdown içinde "Yeni Ekle" (+) butonu çıkarır
+                    ->createOptionForm([
+                        TextInput::make('name')
+                            ->label('Kenarlık Adı')
+                            ->required(),
+                        FileUpload::make('image_path')
+                            ->label('Kenarlık Görseli')
+                            ->image()
+                            ->directory('borders') // Storage/app/public/borders içine kaydeder
+                            ->disk('public') // Önemli: Public diski
+                            ->required(),
+                    ])
+                    ->editOptionForm([
+                         TextInput::make('name')->required(),
+                         FileUpload::make('image_path')->image()->disk('public')->directory('borders'),
+                    ]),
             ]);
     }
 }

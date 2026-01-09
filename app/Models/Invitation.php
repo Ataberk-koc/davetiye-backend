@@ -26,4 +26,8 @@ class Invitation extends Model
     {
         return $this->hasMany(Moment::class);
     }
+    public function border()
+    {
+        return $this->belongsTo(Border::class);
+    }
 }

@@ -16,7 +16,8 @@ class InvitationController extends Controller
      */
     public function index(): JsonResponse
     {
-        $invitations = Invitation::all()->map(function ($invitation) {
+        // with('border') ile kenarlık ilişkisini de yüklüyoruz (Eager Loading)
+        $invitations = Invitation::with('border')->get()->map(function ($invitation) {
             return $this->formatInvitation($invitation);
         });
         
@@ -31,7 +32,8 @@ class InvitationController extends Controller
      */
     public function show($id): JsonResponse
     {
-        $invitation = Invitation::find($id);
+        // with('border') eklendi
+        $invitation = Invitation::with('border')->find($id);
         
         if (!$invitation) {
             return response()->json([
@@ -49,7 +51,7 @@ class InvitationController extends Controller
     /**
      * Yeni davetiye oluştur
      */
-    public function store(\Illuminate\Http\Request $request): JsonResponse
+    public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'groom_name' => 'required|string|max:255',
@@ -61,6 +63,7 @@ class InvitationController extends Controller
             'location' => 'nullable|string|max:500',
             'description' => 'nullable|string|max:2000',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'border_id' => 'nullable|exists:borders,id', // Yeni: Kenarlık ID kontrolü
         ]);
 
         $invitation = new Invitation();
@@ -72,6 +75,7 @@ class InvitationController extends Controller
         $invitation->event_type = $validated['event_type'];
         $invitation->location = $validated['location'] ?? null;
         $invitation->description = $validated['description'] ?? null;
+        $invitation->border_id = $validated['border_id'] ?? null; // Yeni: Kenarlık kaydı
 
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('invitations', 'public');
@@ -90,7 +94,7 @@ class InvitationController extends Controller
     /**
      * Davetiyeyi güncelle
      */
-    public function update(\Illuminate\Http\Request $request, $id): JsonResponse
+    public function update(Request $request, $id): JsonResponse
     {
         $invitation = Invitation::find($id);
         
@@ -111,18 +115,22 @@ class InvitationController extends Controller
             'location' => 'nullable|string|max:500',
             'description' => 'nullable|string|max:2000',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'border_id' => 'nullable|exists:borders,id', // Yeni: Kenarlık güncelleme
         ]);
 
         $invitation->update($validated);
 
         if ($request->hasFile('image')) {
             if ($invitation->image) {
-                \Storage::disk('public')->delete($invitation->image);
+                Storage::disk('public')->delete($invitation->image);
             }
             $path = $request->file('image')->store('invitations', 'public');
             $invitation->image = $path;
             $invitation->save();
         }
+
+        // Güncel veriyi border ilişkisiyle birlikte döndürelim
+        $invitation->load('border');
 
         return response()->json([
             'success' => true,
@@ -146,7 +154,7 @@ class InvitationController extends Controller
         }
 
         if ($invitation->image) {
-            \Storage::disk('public')->delete($invitation->image);
+            Storage::disk('public')->delete($invitation->image);
         }
 
         $invitation->delete();
@@ -158,17 +166,25 @@ class InvitationController extends Controller
     }
 
     /**
-     * Davetiyeyi format et (image URL'sini ekle)
+     * Davetiyeyi format et (image ve border URL'lerini ekle)
      */
     private function formatInvitation($invitation)
     {
         $data = $invitation->toArray();
+        
+        // Ana Resim URL
         if ($invitation->image) {
             $data['image_url'] = asset('storage/' . $invitation->image);
         }
+
+        // YENİ: Kenarlık Resim URL
+        // Eğer davetiyenin bir border'ı varsa onun image_path'ini URL'e çeviriyoruz
+        $data['border_url'] = $invitation->border ? asset('storage/' . $invitation->border->image_path) : null;
+
         return $data;
     }
-    // 1. ANILARI LİSTELEME (Frontend sayfa açılınca bunu çağıracak)
+
+    // 1. ANILARI LİSTELEME
     public function getMoments($id)
     {
         $invitation = Invitation::find($id);
@@ -177,7 +193,6 @@ class InvitationController extends Controller
             return response()->json(['message' => 'Davetiye bulunamadı'], 404);
         }
 
-        // Sadece onaylı olanları, en yeniden eskiye doğru getir
         $moments = $invitation->moments()
             ->where('is_approved', true)
             ->latest()
@@ -185,7 +200,6 @@ class InvitationController extends Controller
             ->map(function ($moment) {
                 return [
                     'id' => $moment->id,
-                    // Frontend'de göstermek için tam URL oluşturuyoruz
                     'image_url' => asset('storage/' . $moment->image_path),
                     'caption' => $moment->caption,
                     'created_at' => $moment->created_at->diffForHumans(),
@@ -195,7 +209,7 @@ class InvitationController extends Controller
         return response()->json(['data' => $moments]);
     }
 
-    // 2. YENİ ANI YÜKLEME (Frontend "Gönder" diyince burası çalışacak)
+    // 2. YENİ ANI YÜKLEME
     public function addMoments(Request $request, $id)
     {
         $invitation = Invitation::find($id);
@@ -206,7 +220,7 @@ class InvitationController extends Controller
 
         $request->validate([
             'photos' => 'required|array',
-            'photos.*.image_data' => 'required|string', // Base64 string
+            'photos.*.image_data' => 'required|string',
             'photos.*.caption' => 'nullable|string|max:500',
         ]);
 
@@ -214,22 +228,17 @@ class InvitationController extends Controller
             $savedMoments = [];
 
             foreach ($request->photos as $photoData) {
-                // Base64 verisinden resmi ayrıştır
                 $image_64 = $photoData['image_data']; 
                 
-                // Base64 başlığını temizle (data:image/jpeg;base64, kısmı)
                 $extension = explode('/', explode(':', substr($image_64, 0, strpos($image_64, ';')))[1])[1];   
                 $replace = substr($image_64, 0, strpos($image_64, ',')+1); 
                 $image = str_replace($replace, '', $image_64); 
                 $image = str_replace(' ', '+', $image); 
                 
-                // Benzersiz dosya ismi oluştur
                 $imageName = 'moments/' . Str::random(10) . '.' . $extension;
                 
-                // Dosyayı storage/app/public/moments klasörüne kaydet
                 Storage::disk('public')->put($imageName, base64_decode($image));
 
-                // Veritabanına kaydet
                 $moment = $invitation->moments()->create([
                     'image_path' => $imageName,
                     'caption' => $photoData['caption'] ?? null,
