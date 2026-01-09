@@ -85,6 +85,17 @@ class InvitationForm
                          TextInput::make('name')->required(),
                          FileUpload::make('image_path')->image()->disk('public')->directory('borders'),
                     ]),
+                    TextInput::make('location')
+                    ->label('Mekan / Adres')
+                    ->maxLength(500),
+
+                // --- YENİ EKLENEN ALAN ---
+                TextInput::make('map_url')
+                    ->label('Google Maps Bağlantısı')
+                    ->placeholder('https://goo.gl/maps/...')
+                    ->url() // URL formatında olmasını zorunlu kılar
+                    ->suffixIcon('heroicon-m-map') // Şık bir ikon ekler
+                    ->maxLength(1000),
             ]);
     }
 }

@@ -64,6 +64,7 @@ class InvitationController extends Controller
             'description' => 'nullable|string|max:2000',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'border_id' => 'nullable|exists:borders,id', // Yeni: Kenarlık ID kontrolü
+            'map_url' => 'nullable|url|max:1000',
         ]);
 
         $invitation = new Invitation();
@@ -76,6 +77,9 @@ class InvitationController extends Controller
         $invitation->location = $validated['location'] ?? null;
         $invitation->description = $validated['description'] ?? null;
         $invitation->border_id = $validated['border_id'] ?? null; // Yeni: Kenarlık kaydı
+        $invitation->location = $validated['location'] ?? null;
+        $invitation->map_url = $validated['map_url'] ?? null; // <-- YENİ
+        $invitation->description = $validated['description'] ?? null;
 
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('invitations', 'public');
@@ -116,6 +120,7 @@ class InvitationController extends Controller
             'description' => 'nullable|string|max:2000',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'border_id' => 'nullable|exists:borders,id', // Yeni: Kenarlık güncelleme
+            'map_url' => 'nullable|url|max:1000',
         ]);
 
         $invitation->update($validated);
@@ -180,7 +185,7 @@ class InvitationController extends Controller
         // YENİ: Kenarlık Resim URL
         // Eğer davetiyenin bir border'ı varsa onun image_path'ini URL'e çeviriyoruz
         $data['border_url'] = $invitation->border ? asset('storage/' . $invitation->border->image_path) : null;
-
+        $data['map_url'] = $invitation->map_url;
         return $data;
     }
 

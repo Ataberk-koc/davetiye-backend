@@ -16,6 +16,7 @@ class Invitation extends Model
         'event_type',
         'location',
         'description',
+        'map_url',
     ];
 
     protected $casts = [
