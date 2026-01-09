@@ -51,6 +51,7 @@ class InvitationForm
                 FileUpload::make('image')
                     ->label('Davetiye Görseli')
                     ->image()
+                    ->disk('public')
                     ->directory('invitations')
                     ->visibility('public'),
             ]);

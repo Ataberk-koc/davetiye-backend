@@ -9,3 +9,8 @@ Route::get('/invitations/{id}', [InvitationController::class, 'show']);
 Route::post('/invitations', [InvitationController::class, 'store']);
 Route::put('/invitations/{id}', [InvitationController::class, 'update']);
 Route::delete('/invitations/{id}', [InvitationController::class, 'destroy']);
+// Anıları listeleme
+Route::get('/invitations/{id}/moments', [InvitationController::class, 'getMoments']);
+
+// Yeni anı yükleme
+Route::post('/invitations/{id}/moments', [InvitationController::class, 'addMoments']);

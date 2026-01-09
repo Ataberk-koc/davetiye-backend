@@ -21,4 +21,9 @@ class Invitation extends Model
     protected $casts = [
         'wedding_date' => 'datetime',
     ];
+    // Bir davetiyenin birden fazla anısı (fotoğrafı) olabilir
+    public function moments()
+    {
+        return $this->hasMany(Moment::class);
+    }
 }

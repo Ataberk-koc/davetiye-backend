@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Invitation;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class InvitationController extends Controller
 {
@@ -164,5 +167,86 @@ class InvitationController extends Controller
             $data['image_url'] = asset('storage/' . $invitation->image);
         }
         return $data;
+    }
+    // 1. ANILARI LİSTELEME (Frontend sayfa açılınca bunu çağıracak)
+    public function getMoments($id)
+    {
+        $invitation = Invitation::find($id);
+
+        if (!$invitation) {
+            return response()->json(['message' => 'Davetiye bulunamadı'], 404);
+        }
+
+        // Sadece onaylı olanları, en yeniden eskiye doğru getir
+        $moments = $invitation->moments()
+            ->where('is_approved', true)
+            ->latest()
+            ->get()
+            ->map(function ($moment) {
+                return [
+                    'id' => $moment->id,
+                    // Frontend'de göstermek için tam URL oluşturuyoruz
+                    'image_url' => asset('storage/' . $moment->image_path),
+                    'caption' => $moment->caption,
+                    'created_at' => $moment->created_at->diffForHumans(),
+                ];
+            });
+
+        return response()->json(['data' => $moments]);
+    }
+
+    // 2. YENİ ANI YÜKLEME (Frontend "Gönder" diyince burası çalışacak)
+    public function addMoments(Request $request, $id)
+    {
+        $invitation = Invitation::find($id);
+
+        if (!$invitation) {
+            return response()->json(['message' => 'Davetiye bulunamadı'], 404);
+        }
+
+        $request->validate([
+            'photos' => 'required|array',
+            'photos.*.image_data' => 'required|string', // Base64 string
+            'photos.*.caption' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            $savedMoments = [];
+
+            foreach ($request->photos as $photoData) {
+                // Base64 verisinden resmi ayrıştır
+                $image_64 = $photoData['image_data']; 
+                
+                // Base64 başlığını temizle (data:image/jpeg;base64, kısmı)
+                $extension = explode('/', explode(':', substr($image_64, 0, strpos($image_64, ';')))[1])[1];   
+                $replace = substr($image_64, 0, strpos($image_64, ',')+1); 
+                $image = str_replace($replace, '', $image_64); 
+                $image = str_replace(' ', '+', $image); 
+                
+                // Benzersiz dosya ismi oluştur
+                $imageName = 'moments/' . Str::random(10) . '.' . $extension;
+                
+                // Dosyayı storage/app/public/moments klasörüne kaydet
+                Storage::disk('public')->put($imageName, base64_decode($image));
+
+                // Veritabanına kaydet
+                $moment = $invitation->moments()->create([
+                    'image_path' => $imageName,
+                    'caption' => $photoData['caption'] ?? null,
+                ]);
+                
+                $savedMoments[] = $moment;
+            }
+
+            return response()->json([
+                'message' => 'Fotoğraflar başarıyla yüklendi',
+                'count' => count($savedMoments)
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Yükleme sırasında hata oluştu: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
