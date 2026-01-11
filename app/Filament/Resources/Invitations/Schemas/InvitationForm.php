@@ -146,9 +146,6 @@ class InvitationForm
                          TextInput::make('name')->required(),
                          FileUpload::make('image_path')->image()->disk('public')->directory('borders'),
                     ]),
-                    TextInput::make('location')
-                    ->label('Mekan / Adres')
-                    ->maxLength(500),
 
                 // --- YENİ EKLENEN ALAN ---
                 TextInput::make('map_url')
