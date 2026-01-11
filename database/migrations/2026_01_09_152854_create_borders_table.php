@@ -27,6 +27,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('invitations', function (Blueprint $table) {
+            $table->dropForeignKeyIfExists(['border_id']);
+            $table->dropColumn('border_id');
+        });
         Schema::dropIfExists('borders');
     }
     

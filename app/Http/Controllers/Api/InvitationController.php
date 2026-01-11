@@ -65,6 +65,10 @@ class InvitationController extends Controller
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'border_id' => 'nullable|exists:borders,id', // Yeni: Kenarlık ID kontrolü
             'map_url' => 'nullable|url|max:1000',
+            'background_color' => 'nullable|string|max:20',
+            'title_font_family' => 'nullable|string|max:100',
+            'signature_font_family' => 'nullable|string|max:100',
+            'body_font_family' => 'nullable|string|max:100',
         ]);
 
         $invitation = new Invitation();
@@ -80,6 +84,10 @@ class InvitationController extends Controller
         $invitation->location = $validated['location'] ?? null;
         $invitation->map_url = $validated['map_url'] ?? null; // <-- YENİ
         $invitation->description = $validated['description'] ?? null;
+        $invitation->background_color = $validated['background_color'] ?? null;
+        $invitation->title_font_family = $validated['title_font_family'] ?? null;
+        $invitation->signature_font_family = $validated['signature_font_family'] ?? null;
+        $invitation->body_font_family = $validated['body_font_family'] ?? null;
 
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('invitations', 'public');

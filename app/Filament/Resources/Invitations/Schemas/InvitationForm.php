@@ -14,20 +14,81 @@ class InvitationForm
 {
     public static function configure(Schema $schema): Schema
     {
-        return $schema
-            ->components([
-                TextInput::make('groom_name')
-                    ->label('Damat Adı')
-                    ->required(),
-                TextInput::make('groom_surname')
-                    ->label('Damat Soyadı')
-                    ->required(),
-                TextInput::make('bride_name')
-                    ->label('Gelin Adı')
-                    ->required(),
-                TextInput::make('bride_surname')
-                    ->label('Gelin Soyadı')
-                    ->required(),
+        return $schema->components([
+            TextInput::make('groom_name')
+                ->label('Damat Adı')
+                ->required(),
+            
+            TextInput::make('groom_surname')
+                ->label('Damat Soyadı')
+                ->required(),
+            
+            TextInput::make('bride_name')
+                ->label('Gelin Adı')
+                ->required(),
+            
+            TextInput::make('bride_surname')
+                ->label('Gelin Soyadı')
+                ->required(),
+
+            Select::make('title_font_family')
+                ->label('Başlık Yazı Tipi')
+                ->options([
+                    'Arial' => 'Arial',
+                    'Times New Roman' => 'Times New Roman',
+                    'Roboto' => 'Roboto',
+                    'Open Sans' => 'Open Sans',
+                    'Dancing Script' => 'Dancing Script',
+                    'Pacifico' => 'Pacifico',
+                    'other' => 'Diğer (kendin gir)'
+                ])
+                ->searchable()
+                ->reactive()
+                ->afterStateUpdated(fn ($state, callable $set) => $set('custom_title_font_family', null))
+                ->placeholder('Bir font seçin'),
+
+            TextInput::make('custom_title_font_family')
+                ->label('Başlık Yazı Tipi (Diğer)')
+                ->visible(fn ($get) => $get('title_font_family') === 'other')
+                ->placeholder('Yazı tipi girin'),
+
+            Select::make('signature_font_family')
+                ->label('İmza Yazı Tipi')
+                ->options([
+                    'Dancing Script' => 'Dancing Script',
+                    'Pacifico' => 'Pacifico',
+                    'Great Vibes' => 'Great Vibes',
+                    'Satisfy' => 'Satisfy',
+                    'other' => 'Diğer (kendin gir)'
+                ])
+                ->searchable()
+                ->reactive()
+                ->afterStateUpdated(fn ($state, callable $set) => $set('custom_signature_font_family', null))
+                ->placeholder('Bir font seçin'),
+
+            TextInput::make('custom_signature_font_family')
+                ->label('İmza Yazı Tipi (Diğer)')
+                ->visible(fn ($get) => $get('signature_font_family') === 'other')
+                ->placeholder('Yazı tipi girin'),
+
+            Select::make('body_font_family')
+                ->label('Gövde ve Buton Yazı Tipi')
+                ->options([
+                    'Arial' => 'Arial',
+                    'Times New Roman' => 'Times New Roman',
+                    'Roboto' => 'Roboto',
+                    'Open Sans' => 'Open Sans',
+                    'other' => 'Diğer (kendin gir)'
+                ])
+                ->searchable()
+                ->reactive()
+                ->afterStateUpdated(fn ($state, callable $set) => $set('custom_body_font_family', null))
+                ->placeholder('Bir font seçin'),
+
+            TextInput::make('custom_body_font_family')
+                ->label('Gövde ve Buton Yazı Tipi (Diğer)')
+                ->visible(fn ($get) => $get('body_font_family') === 'other')
+                ->placeholder('Yazı tipi girin'),
                 DateTimePicker::make('wedding_date')
                     ->label('Düğün Tarihi')
                     ->required(),

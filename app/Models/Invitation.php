@@ -17,6 +17,11 @@ class Invitation extends Model
         'location',
         'description',
         'map_url',
+        'background_color',
+        'title_font_family',
+        'signature_font_family',
+        'body_font_family',
+        'border_id',
     ];
 
     protected $casts = [
