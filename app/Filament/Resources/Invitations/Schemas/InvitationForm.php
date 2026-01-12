@@ -9,6 +9,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Schema;
 use App\Models\Border;
+use Filament\Forms\Components\ColorPicker;
+
 
 class InvitationForm
 {
@@ -146,6 +148,9 @@ class InvitationForm
                          TextInput::make('name')->required(),
                          FileUpload::make('image_path')->image()->disk('public')->directory('borders'),
                     ]),
+                   ColorPicker::make('background_color')
+                    ->label('Arka Plan Rengi')
+                    ->default('#FFFFFF'),     
 
                 // --- YENİ EKLENEN ALAN ---
                 TextInput::make('map_url')
